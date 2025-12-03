@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChurnBuddy Cancellation Flow</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .subscription-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        p {
+            color: #666;
+            margin-bottom: 1.5rem;
+        }
+        .cancel-button {
+            background-color: #fee2e2;
+            color: #ef4444;
+            border: 1px solid #fecaca;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+        .cancel-button:hover {
+            background-color: #fecaca;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="subscription-section">
+        <h2>Manage Subscription</h2>
+        <p>We're sorry to see you consider leaving. Click below if you wish to proceed with cancellation.</p>
+        
+        <button id="cancel-plan-btn" class="cancel-button">
+            Cancel Plan
+        </button>
+    </div>
+
+    <!-- ChurnBuddy Cancel Flow -->
+    <script src="https://churnbuddy.vercel.app/embed/churnbuddy.js"></script>
+    <script>
+        // Initialize ChurnBuddy
+        ChurnBuddy.init({
+            flowId: '86117a7d-e5a1-48a8-b6af-08150c5c363e',
+            onCancel: function(data) {
+                console.log('User cancelled:', data);
+                alert('Plan cancelled successfully.');
+            },
+            onSave: function(data) {
+                console.log('User saved:', data);
+                alert('Thank you for staying with us!');
+            }
+        });
+
+        // Attach click handler to trigger the flow
+        document.getElementById('cancel-plan-btn').addEventListener('click', function() {
+            if (window.ChurnBuddy) {
+                ChurnBuddy.open();
+            } else {
+                console.error('ChurnBuddy is not loaded');
+            }
+        });
+    </script>
+
+</body>
+</html>
+
