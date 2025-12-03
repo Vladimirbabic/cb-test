@@ -72,11 +72,11 @@
     -->
 
     <script
-      src="https://churnbuddy.vercel.app/api/embed?flow=86117a7d-e5a1-48a8-b6af-08150c5c363e"
+      src="http://localhost:3000/api/embed?flow=86117a7d-e5a1-48a8-b6af-08150c5c363e"
       data-churnbuddy
       data-customer-id="cus_xxxxxxxxxxxxx"
       data-subscription-id="sub_xxxxxxxxxxxxx"
-      data-discount-percent="20"
+      data-discount-percent="10"
       data-discount-duration="3 months"
       data-cancel-selector="[data-cancel-subscription]"
     ></script>
@@ -85,32 +85,26 @@
 
     <script>
       // After page loads, call ChurnBuddy.init with your customer data
-      // Note: If you are using the data attributes above, you might not need to call init again unless you need to override values.
-      // But per instructions, including the init block as well.
-      
       window.addEventListener('DOMContentLoaded', () => {
           if (typeof ChurnBuddy !== 'undefined') {
-              ChurnBuddy.init({
+            ChurnBuddy.init({
                 customerId: 'cus_xxxxxxxxxxxxx',      // From your backend
                 subscriptionId: 'sub_xxxxxxxxxxxxx',  // From your backend
-                discountPercent: 20,
+                discountPercent: 10,
                 discountDuration: '3 months',
                 cancelButtonSelector: '[data-cancel-subscription]',
                 onCancel: function(reason) {
-                  // Handle cancellation - redirect or call your API
-                  console.log('User cancelled with reason:', reason);
-                  alert('User cancelled with reason: ' + JSON.stringify(reason));
+                // Handle cancellation - redirect or call your API
+                console.log('User cancelled with reason:', reason);
                 },
                 onSaved: function() {
-                  // Handle when user accepts the discount offer
-                  console.log('User saved! Apply discount via your backend.');
-                  alert('User saved! Apply discount via your backend.');
+                // Handle when user accepts the discount offer
+                console.log('User saved! Apply discount via your backend.');
                 }
-              });
+            });
           }
       });
     </script>
 
 </body>
 </html>
-
