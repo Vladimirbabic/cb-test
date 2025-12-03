@@ -55,7 +55,9 @@
         <p>We're sorry to see you consider leaving. Click below if you wish to proceed with cancellation.</p>
         
         <!-- Add this attribute to your cancel button -->
-        <button data-cancel-subscription>Cancel Subscription</button>
+        <button id="cancel-plan-btn" class="cancel-button" data-cancel-subscription>
+            Cancel Plan
+        </button>
     </div>
 
     <!-- ChurnBuddy Cancel Flow -->
@@ -83,20 +85,24 @@
 
     <script>
       // After page loads, call ChurnBuddy.init with your customer data
-      ChurnBuddy.init({
-        customerId: 'cus_xxxxxxxxxxxxx',      // From your backend
-        subscriptionId: 'sub_xxxxxxxxxxxxx',  // From your backend
-        discountPercent: 10,
-        discountDuration: '3 months',
-        cancelButtonSelector: '[data-cancel-subscription]',
-        onCancel: function(reason) {
-          // Handle cancellation - redirect or call your API
-          console.log('User cancelled with reason:', reason);
-        },
-        onSaved: function() {
-          // Handle when user accepts the discount offer
-          console.log('User saved! Apply discount via your backend.');
-        }
+      window.addEventListener('DOMContentLoaded', () => {
+          if (typeof ChurnBuddy !== 'undefined') {
+            ChurnBuddy.init({
+                customerId: 'cus_xxxxxxxxxxxxx',      // From your backend
+                subscriptionId: 'sub_xxxxxxxxxxxxx',  // From your backend
+                discountPercent: 10,
+                discountDuration: '3 months',
+                cancelButtonSelector: '[data-cancel-subscription]',
+                onCancel: function(reason) {
+                // Handle cancellation - redirect or call your API
+                console.log('User cancelled with reason:', reason);
+                },
+                onSaved: function() {
+                // Handle when user accepts the discount offer
+                console.log('User saved! Apply discount via your backend.');
+                }
+            });
+          }
       });
     </script>
 
