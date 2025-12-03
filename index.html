@@ -54,35 +54,61 @@
         <h2>Manage Subscription</h2>
         <p>We're sorry to see you consider leaving. Click below if you wish to proceed with cancellation.</p>
         
-        <button id="cancel-plan-btn" class="cancel-button">
+        <!-- Add this attribute to your cancel button -->
+        <button id="cancel-plan-btn" class="cancel-button" data-cancel-subscription>
             Cancel Plan
         </button>
     </div>
 
     <!-- ChurnBuddy Cancel Flow -->
-    <script src="https://churnbuddy.vercel.app/embed/churnbuddy.js"></script>
-    <script>
-        // Initialize ChurnBuddy
-        ChurnBuddy.init({
-            flowId: '86117a7d-e5a1-48a8-b6af-08150c5c363e',
-            onCancel: function(data) {
-                console.log('User cancelled:', data);
-                alert('Plan cancelled successfully.');
-            },
-            onSave: function(data) {
-                console.log('User saved:', data);
-                alert('Thank you for staying with us!');
-            }
-        });
 
-        // Attach click handler to trigger the flow
-        document.getElementById('cancel-plan-btn').addEventListener('click', function() {
-            if (window.ChurnBuddy) {
-                ChurnBuddy.open();
-            } else {
-                console.error('ChurnBuddy is not loaded');
-            }
-        });
+    <!--
+      IMPORTANT: Replace the placeholder values below with actual
+      Stripe customer/subscription IDs from your backend.
+
+      Example with server-side rendering (Next.js, PHP, Rails, etc.):
+      data-customer-id="<?= $customer->stripe_id ?>"
+      data-subscription-id="<?= $subscription->stripe_id ?>"
+    -->
+
+    <script
+      src="https://churnbuddy.vercel.app/api/embed?flow=86117a7d-e5a1-48a8-b6af-08150c5c363e"
+      data-churnbuddy
+      data-customer-id="cus_xxxxxxxxxxxxx"
+      data-subscription-id="sub_xxxxxxxxxxxxx"
+      data-discount-percent="20"
+      data-discount-duration="3 months"
+      data-cancel-selector="[data-cancel-subscription]"
+    ></script>
+
+    <!-- OR: Initialize via JavaScript for dynamic values -->
+
+    <script>
+      // After page loads, call ChurnBuddy.init with your customer data
+      // Note: If you are using the data attributes above, you might not need to call init again unless you need to override values.
+      // But per instructions, including the init block as well.
+      
+      window.addEventListener('DOMContentLoaded', () => {
+          if (typeof ChurnBuddy !== 'undefined') {
+              ChurnBuddy.init({
+                customerId: 'cus_xxxxxxxxxxxxx',      // From your backend
+                subscriptionId: 'sub_xxxxxxxxxxxxx',  // From your backend
+                discountPercent: 20,
+                discountDuration: '3 months',
+                cancelButtonSelector: '[data-cancel-subscription]',
+                onCancel: function(reason) {
+                  // Handle cancellation - redirect or call your API
+                  console.log('User cancelled with reason:', reason);
+                  alert('User cancelled with reason: ' + JSON.stringify(reason));
+                },
+                onSaved: function() {
+                  // Handle when user accepts the discount offer
+                  console.log('User saved! Apply discount via your backend.');
+                  alert('User saved! Apply discount via your backend.');
+                }
+              });
+          }
+      });
     </script>
 
 </body>
