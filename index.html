@@ -72,12 +72,12 @@
     -->
 
     <script
-      src="https://churnbuddy.vercel.app/api/embed?flow=86117a7d-e5a1-48a8-b6af-08150c5c363e"
+      src="https://churnbuddy.vercel.app/api/embed?flow=503157dc-608f-474a-a151-c4fdb9485337"
       data-churnbuddy
       data-customer-id="cus_xxxxxxxxxxxxx"
       data-subscription-id="sub_xxxxxxxxxxxxx"
-      data-discount-percent="10"
-      data-discount-duration="3 months"
+      data-discount-percent="50"
+      data-discount-duration="6 months"
       data-cancel-selector="[data-cancel-subscription]"
     ></script>
 
@@ -90,8 +90,8 @@
             ChurnBuddy.init({
                 customerId: 'cus_xxxxxxxxxxxxx',      // From your backend
                 subscriptionId: 'sub_xxxxxxxxxxxxx',  // From your backend
-                discountPercent: 10,
-                discountDuration: '3 months',
+                discountPercent: 50,
+                discountDuration: '6 months',
                 cancelButtonSelector: '[data-cancel-subscription]',
                 onCancel: function(reason) {
                 // Handle cancellation - redirect or call your API
