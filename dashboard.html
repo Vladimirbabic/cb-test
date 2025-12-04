@@ -21,8 +21,27 @@
             padding: 1rem;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 2rem;
+            box-sizing: border-box;
+        }
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .plan-badge {
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .plan-badge.no-plan {
+            background: #6b7280;
         }
         .container {
             width: 100%;
@@ -54,6 +73,10 @@
         }
         .btn-primary { background-color: #0070f3; color: white; }
         .btn-primary:hover { background-color: #0051a2; }
+        .btn-primary:disabled { 
+            background-color: #9ca3af; 
+            cursor: not-allowed; 
+        }
         
         .btn-danger {
             background-color: #fee2e2;
@@ -66,36 +89,74 @@
         }
 
         .plans { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
-        .plan-card { border: 1px solid #eee; padding: 1.5rem; border-radius: 8px; min-width: 200px; }
+        .plan-card { 
+            border: 1px solid #eee; 
+            padding: 1.5rem; 
+            border-radius: 8px; 
+            min-width: 200px;
+            position: relative;
+        }
+        .plan-card.current {
+            border: 2px solid #10b981;
+            background: #f0fdf4;
+        }
+        .plan-card.current::after {
+            content: 'Current Plan';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
     </style>
 </head>
 <body>
 
     <nav>
-        <div id="user-email">Loading...</div>
+        <div class="nav-left">
+            <div id="user-email">Loading...</div>
+            <span id="plan-badge" class="plan-badge no-plan">No Plan</span>
+        </div>
         <button id="logout-btn" class="btn">Logout</button>
     </nav>
 
     <div class="container">
+        <div id="success-message" class="success-message">
+            🎉 Subscription successful! Your plan is now active.
+        </div>
+
         <!-- Plans Section -->
         <div class="card">
             <h2>Choose a Plan</h2>
             <div class="plans">
-                <div class="plan-card">
+                <div class="plan-card" id="plan-card-9">
                     <h3>Basic</h3>
                     <p>$9 / month</p>
-                    <button class="btn btn-primary" onclick="checkout('price_9')">Subscribe $9</button>
+                    <button id="btn-9" class="btn btn-primary" onclick="checkout('price_9')">Subscribe $9</button>
                 </div>
-                <div class="plan-card">
+                <div class="plan-card" id="plan-card-19">
                     <h3>Pro</h3>
                     <p>$19 / month</p>
-                    <button class="btn btn-primary" onclick="checkout('price_19')">Subscribe $19</button>
+                    <button id="btn-19" class="btn btn-primary" onclick="checkout('price_19')">Subscribe $19</button>
                 </div>
             </div>
         </div>
 
         <!-- Cancel Section -->
-        <div class="card">
+        <div class="card" id="cancel-section" style="display: none;">
             <h2>Manage Subscription</h2>
             <p>We're sorry to see you consider leaving. Click below if you wish to proceed with cancellation.</p>
             <button id="cancel-plan-btn" class="btn btn-danger" data-cancel-subscription>
@@ -109,7 +170,11 @@
 
     <script src="js/config.js"></script>
     <script>
-        // Auth Check
+        let currentSubscription = null;
+        const PRICE_ID_9 = 'price_1SaZfrLXgHZdEVXGEoy3Zuzb';
+        const PRICE_ID_19 = 'price_1SaZg5LXgHZdEVXGLCk6Um6u';
+
+        // Auth Check & Init
         async function init() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -118,21 +183,128 @@
             }
             document.getElementById('user-email').innerText = session.user.email;
             
-            // Dynamically load ChurnBuddy with authenticated user email
+            // Check for successful checkout
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                // Get price from session storage
+                const purchasedPriceId = sessionStorage.getItem('pending_price_id');
+                const purchasedPlanName = sessionStorage.getItem('pending_plan_name');
+                
+                if (purchasedPriceId && purchasedPlanName) {
+                    await saveSubscription(purchasedPriceId, purchasedPlanName);
+                    sessionStorage.removeItem('pending_price_id');
+                    sessionStorage.removeItem('pending_plan_name');
+                }
+                
+                document.getElementById('success-message').style.display = 'block';
+                // Clean URL
+                window.history.replaceState({}, document.title, 'dashboard.html');
+            }
+            
+            // Fetch current subscription
+            await fetchSubscription();
+            
+            // Load ChurnBuddy with authenticated user email
             loadChurnBuddy(session.user.email);
         }
         init();
 
+        async function fetchSubscription() {
+            try {
+                const { data, error } = await supabase.functions.invoke('get-subscription');
+                if (error) throw error;
+                
+                currentSubscription = data.subscription;
+                updateUI();
+            } catch (err) {
+                console.error('Error fetching subscription:', err);
+            }
+        }
+
+        async function saveSubscription(priceId, planName) {
+            try {
+                const { data, error } = await supabase.functions.invoke('save-subscription', {
+                    body: { priceId, planName }
+                });
+                if (error) throw error;
+                currentSubscription = data.subscription;
+            } catch (err) {
+                console.error('Error saving subscription:', err);
+            }
+        }
+
+        function updateUI() {
+            const planBadge = document.getElementById('plan-badge');
+            const btn9 = document.getElementById('btn-9');
+            const btn19 = document.getElementById('btn-19');
+            const planCard9 = document.getElementById('plan-card-9');
+            const planCard19 = document.getElementById('plan-card-19');
+            const cancelSection = document.getElementById('cancel-section');
+
+            // Reset UI
+            planCard9.classList.remove('current');
+            planCard19.classList.remove('current');
+            btn9.disabled = false;
+            btn9.innerText = 'Subscribe $9';
+            btn19.disabled = false;
+            btn19.innerText = 'Subscribe $19';
+
+            if (currentSubscription && currentSubscription.status === 'active') {
+                planBadge.classList.remove('no-plan');
+                planBadge.innerText = currentSubscription.plan_name;
+                cancelSection.style.display = 'block';
+
+                if (currentSubscription.price_id === PRICE_ID_9) {
+                    planCard9.classList.add('current');
+                    btn9.disabled = true;
+                    btn9.innerText = 'Current Plan';
+                } else if (currentSubscription.price_id === PRICE_ID_19) {
+                    planCard19.classList.add('current');
+                    btn19.disabled = true;
+                    btn19.innerText = 'Current Plan';
+                }
+            } else {
+                planBadge.classList.add('no-plan');
+                planBadge.innerText = 'No Plan';
+                cancelSection.style.display = 'none';
+            }
+        }
+
         function loadChurnBuddy(userEmail) {
+            // Get customer/subscription IDs from current subscription if available
+            const customerId = currentSubscription?.stripe_customer_id || 'cus_xxxxxxxxxxxxx';
+            const subscriptionId = currentSubscription?.stripe_subscription_id || 'sub_xxxxxxxxxxxxx';
+
+            // Load ChurnBuddy script with data attributes
             const script = document.createElement('script');
-            // Using the known functional Flow ID. 
-            // If you specifically need 'YOUR_FLOW_ID', you can change it here, but it likely won't load.
             script.src = "https://churnbuddy.vercel.app/api/embed?flow=503157dc-608f-474a-a151-c4fdb9485337";
             script.dataset.churnbuddy = "";
-            script.dataset.customerEmail = userEmail;
+            script.dataset.customerId = customerId;
+            script.dataset.subscriptionId = subscriptionId;
+            script.dataset.discountPercent = "50";
+            script.dataset.discountDuration = "6 months";
             script.dataset.cancelSelector = "[data-cancel-subscription]";
             
             document.getElementById('churnbuddy-container').appendChild(script);
+
+            // Also initialize via JavaScript for dynamic values
+            script.onload = function() {
+                if (typeof ChurnBuddy !== 'undefined') {
+                    ChurnBuddy.init({
+                        customerId: customerId,
+                        subscriptionId: subscriptionId,
+                        discountPercent: 50,
+                        discountDuration: '6 months',
+                        cancelButtonSelector: '[data-cancel-subscription]',
+                        onCancel: function(reason) {
+                            console.log('User cancelled with reason:', reason);
+                        },
+                        onSaved: function() {
+                            console.log('User saved! Apply discount via your backend.');
+                        }
+                    });
+                }
+            };
         }
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -142,10 +314,21 @@
 
         // Checkout Logic
         async function checkout(priceKey) {
-            const priceId = priceKey === 'price_9' ? 'price_1SaZfrLXgHZdEVXGEoy3Zuzb' : 'price_1SaZg5LXgHZdEVXGLCk6Um6u';
+            const priceId = priceKey === 'price_9' ? PRICE_ID_9 : PRICE_ID_19;
+            const planName = priceKey === 'price_9' ? 'Basic ($9/mo)' : 'Pro ($19/mo)';
+
+            // Check if already subscribed to this plan
+            if (currentSubscription && currentSubscription.price_id === priceId) {
+                alert('You are already subscribed to this plan!');
+                return;
+            }
             
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
+
+            // Store pending subscription info
+            sessionStorage.setItem('pending_price_id', priceId);
+            sessionStorage.setItem('pending_plan_name', planName);
 
             try {
                 const { data, error } = await supabase.functions.invoke('create-checkout-session', {
@@ -163,13 +346,6 @@
                 alert('Error creating checkout session: ' + err.message);
             }
         }
-        
-        // Optional: Listen for ChurnBuddy events if needed
-        // Note: Since script is loaded dynamically, this needs to be robust
-        window.addEventListener('load', () => {
-             // This might run before the dynamic script loads.
-             // The dynamic script handles initialization automatically via data attributes.
-        });
     </script>
 </body>
 </html>
