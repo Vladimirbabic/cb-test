@@ -104,13 +104,8 @@
         </div>
     </div>
 
-    <!-- ChurnBuddy Cancel Flow -->
-    <script 
-      src="https://churnbuddy.vercel.app/api/embed?flow=503157dc-608f-474a-a151-c4fdb9485337"
-      data-churnbuddy
-      data-customer-email="vldbbc@gmail.com"
-      data-cancel-selector="[data-cancel-subscription]"
-    ></script>
+    <!-- ChurnBuddy Cancel Flow Script Container -->
+    <div id="churnbuddy-container"></div>
 
     <script src="js/config.js"></script>
     <script>
@@ -122,8 +117,23 @@
                 return;
             }
             document.getElementById('user-email').innerText = session.user.email;
+            
+            // Dynamically load ChurnBuddy with authenticated user email
+            loadChurnBuddy(session.user.email);
         }
         init();
+
+        function loadChurnBuddy(userEmail) {
+            const script = document.createElement('script');
+            // Using the known functional Flow ID. 
+            // If you specifically need 'YOUR_FLOW_ID', you can change it here, but it likely won't load.
+            script.src = "https://churnbuddy.vercel.app/api/embed?flow=503157dc-608f-474a-a151-c4fdb9485337";
+            script.dataset.churnbuddy = "";
+            script.dataset.customerEmail = userEmail;
+            script.dataset.cancelSelector = "[data-cancel-subscription]";
+            
+            document.getElementById('churnbuddy-container').appendChild(script);
+        }
 
         document.getElementById('logout-btn').addEventListener('click', async () => {
             await supabase.auth.signOut();
@@ -132,7 +142,7 @@
 
         // Checkout Logic
         async function checkout(priceKey) {
-            const priceId = priceKey === 'price_9' ? 'PRICE_ID_9' : 'PRICE_ID_19'; // Replace with real IDs
+            const priceId = priceKey === 'price_9' ? 'price_1SaZfrLXgHZdEVXGEoy3Zuzb' : 'price_1SaZg5LXgHZdEVXGLCk6Um6u';
             
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
@@ -153,17 +163,12 @@
                 alert('Error creating checkout session: ' + err.message);
             }
         }
-
-        // ChurnBuddy Init
-        window.addEventListener('DOMContentLoaded', () => {
-            if (typeof ChurnBuddy !== 'undefined') {
-                ChurnBuddy.init({
-                    customerEmail: 'vldbbc@gmail.com', // Should ideally be dynamic from session
-                    cancelButtonSelector: '[data-cancel-subscription]',
-                    onCancel: (reason) => console.log('Cancelled:', reason),
-                    onSaved: () => console.log('Saved!')
-                });
-            }
+        
+        // Optional: Listen for ChurnBuddy events if needed
+        // Note: Since script is loaded dynamically, this needs to be robust
+        window.addEventListener('load', () => {
+             // This might run before the dynamic script loads.
+             // The dynamic script handles initialization automatically via data attributes.
         });
     </script>
 </body>
