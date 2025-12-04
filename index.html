@@ -65,19 +65,12 @@
     <!--
       IMPORTANT: Replace the placeholder values below with actual
       Stripe customer/subscription IDs from your backend.
-
-      Example with server-side rendering (Next.js, PHP, Rails, etc.):
-      data-customer-id="<?= $customer->stripe_id ?>"
-      data-subscription-id="<?= $subscription->stripe_id ?>"
     -->
 
-    <script
+    <script 
       src="https://churnbuddy.vercel.app/api/embed?flow=503157dc-608f-474a-a151-c4fdb9485337"
       data-churnbuddy
-      data-customer-id="cus_xxxxxxxxxxxxx"
-      data-subscription-id="sub_xxxxxxxxxxxxx"
-      data-discount-percent="50"
-      data-discount-duration="6 months"
+      data-customer-email="customer@example.com"
       data-cancel-selector="[data-cancel-subscription]"
     ></script>
 
@@ -88,10 +81,7 @@
       window.addEventListener('DOMContentLoaded', () => {
           if (typeof ChurnBuddy !== 'undefined') {
             ChurnBuddy.init({
-                customerId: 'cus_xxxxxxxxxxxxx',      // From your backend
-                subscriptionId: 'sub_xxxxxxxxxxxxx',  // From your backend
-                discountPercent: 50,
-                discountDuration: '6 months',
+                customerEmail: 'customer@example.com', // From your backend
                 cancelButtonSelector: '[data-cancel-subscription]',
                 onCancel: function(reason) {
                 // Handle cancellation - redirect or call your API
