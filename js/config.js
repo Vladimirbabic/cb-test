@@ -1,6 +1,7 @@
-const SUPABASE_URL = 'https://pqqxftklsxlrwrpozoeu.supabase.co';
+const SUPABASE_URL = 'https://kbtvduhjskwiqpcxdquq.supabase.co';
 
-// IMPORTANT: Replace the string below with your actual Anon Key from Supabase Dashboard > Settings > API
+// IMPORTANT: Replace the string below with your actual Anon Key from the "Churnbuddy test site" project
+// Settings > API > Project API keys > anon public
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; 
 
 // Ensure global supabase object is available (it comes from the CDN script)
