@@ -121,6 +121,17 @@
             margin-bottom: 1rem;
             display: none;
         }
+        .debug-info {
+            background: #f3f4f6;
+            padding: 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-align: left;
+            margin-top: 1rem;
+            display: none;
+        }
+        .debug-info.show { display: block; }
+        .debug-info pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -162,6 +173,12 @@
             <button id="cancel-plan-btn" class="btn btn-danger" data-cancel-subscription>
                 Cancel Plan
             </button>
+            
+            <!-- Debug info for Stripe IDs -->
+            <div id="debug-info" class="debug-info">
+                <strong>Stripe IDs (for ChurnBuddy):</strong>
+                <pre id="stripe-ids"></pre>
+            </div>
         </div>
     </div>
 
@@ -171,6 +188,7 @@
     <script src="js/config.js"></script>
     <script>
         let currentSubscription = null;
+        let currentUser = null;
         const PRICE_ID_9 = 'price_1SaZfrLXgHZdEVXGEoy3Zuzb';
         const PRICE_ID_19 = 'price_1SaZg5LXgHZdEVXGLCk6Um6u';
 
@@ -181,21 +199,16 @@
                 window.location.href = 'index.html';
                 return;
             }
+            currentUser = session.user;
             document.getElementById('user-email').innerText = session.user.email;
             
-            // Check for successful checkout
+            // Check for successful checkout with session_id
             const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('success') === 'true') {
-                // Get price from session storage
-                const purchasedPriceId = sessionStorage.getItem('pending_price_id');
-                const purchasedPlanName = sessionStorage.getItem('pending_plan_name');
-                
-                if (purchasedPriceId && purchasedPlanName) {
-                    await saveSubscription(purchasedPriceId, purchasedPlanName);
-                    sessionStorage.removeItem('pending_price_id');
-                    sessionStorage.removeItem('pending_plan_name');
-                }
-                
+            const sessionId = urlParams.get('session_id');
+            
+            if (urlParams.get('success') === 'true' && sessionId) {
+                console.log('Verifying checkout session:', sessionId);
+                await verifyCheckout(sessionId);
                 document.getElementById('success-message').style.display = 'block';
                 // Clean URL
                 window.history.replaceState({}, document.title, 'dashboard.html');
@@ -209,12 +222,45 @@
         }
         init();
 
+        async function verifyCheckout(sessionId) {
+            try {
+                console.log('Calling verify-checkout with sessionId:', sessionId);
+                const { data, error } = await supabase.functions.invoke('verify-checkout', {
+                    body: { sessionId }
+                });
+                
+                if (error) {
+                    console.error('Verify checkout error:', error);
+                    throw error;
+                }
+                
+                console.log('Verify checkout response:', data);
+                currentSubscription = data.subscription;
+                
+                // Log the Stripe IDs we captured
+                console.log('Stripe Customer ID:', data.stripeCustomerId);
+                console.log('Stripe Subscription ID:', data.stripeSubscriptionId);
+                
+            } catch (err) {
+                console.error('Error verifying checkout:', err);
+                // Fallback to old method
+                const purchasedPriceId = sessionStorage.getItem('pending_price_id');
+                const purchasedPlanName = sessionStorage.getItem('pending_plan_name');
+                if (purchasedPriceId && purchasedPlanName) {
+                    await saveSubscription(purchasedPriceId, purchasedPlanName);
+                }
+            }
+            sessionStorage.removeItem('pending_price_id');
+            sessionStorage.removeItem('pending_plan_name');
+        }
+
         async function fetchSubscription() {
             try {
                 const { data, error } = await supabase.functions.invoke('get-subscription');
                 if (error) throw error;
                 
                 currentSubscription = data.subscription;
+                console.log('Current subscription:', currentSubscription);
                 updateUI();
             } catch (err) {
                 console.error('Error fetching subscription:', err);
@@ -240,6 +286,8 @@
             const planCard9 = document.getElementById('plan-card-9');
             const planCard19 = document.getElementById('plan-card-19');
             const cancelSection = document.getElementById('cancel-section');
+            const debugInfo = document.getElementById('debug-info');
+            const stripeIds = document.getElementById('stripe-ids');
 
             // Reset UI
             planCard9.classList.remove('current');
@@ -254,6 +302,13 @@
                 planBadge.innerText = currentSubscription.plan_name;
                 cancelSection.style.display = 'block';
 
+                // Show debug info with Stripe IDs
+                debugInfo.classList.add('show');
+                stripeIds.textContent = JSON.stringify({
+                    stripe_customer_id: currentSubscription.stripe_customer_id || 'Not set',
+                    stripe_subscription_id: currentSubscription.stripe_subscription_id || 'Not set'
+                }, null, 2);
+
                 if (currentSubscription.price_id === PRICE_ID_9) {
                     planCard9.classList.add('current');
                     btn9.disabled = true;
@@ -267,13 +322,16 @@
                 planBadge.classList.add('no-plan');
                 planBadge.innerText = 'No Plan';
                 cancelSection.style.display = 'none';
+                debugInfo.classList.remove('show');
             }
         }
 
         function loadChurnBuddy(userEmail) {
-            // Get customer/subscription IDs from current subscription if available
+            // Get REAL customer/subscription IDs from current subscription
             const customerId = currentSubscription?.stripe_customer_id || 'cus_xxxxxxxxxxxxx';
             const subscriptionId = currentSubscription?.stripe_subscription_id || 'sub_xxxxxxxxxxxxx';
+
+            console.log('Loading ChurnBuddy with:', { customerId, subscriptionId });
 
             // Load ChurnBuddy script with data attributes
             const script = document.createElement('script');
@@ -290,6 +348,7 @@
             // Also initialize via JavaScript for dynamic values
             script.onload = function() {
                 if (typeof ChurnBuddy !== 'undefined') {
+                    console.log('ChurnBuddy loaded, initializing with real IDs...');
                     ChurnBuddy.init({
                         customerId: customerId,
                         subscriptionId: subscriptionId,
@@ -298,9 +357,14 @@
                         cancelButtonSelector: '[data-cancel-subscription]',
                         onCancel: function(reason) {
                             console.log('User cancelled with reason:', reason);
+                            alert('Cancellation recorded. Reason: ' + JSON.stringify(reason));
                         },
                         onSaved: function() {
                             console.log('User saved! Apply discount via your backend.');
+                            console.log('Customer ID:', customerId);
+                            console.log('Subscription ID:', subscriptionId);
+                            alert('User accepted offer! Apply discount for customer: ' + customerId);
+                            // TODO: Call your backend to apply the Stripe discount
                         }
                     });
                 }
@@ -326,13 +390,17 @@
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            // Store pending subscription info
+            // Store pending subscription info (fallback)
             sessionStorage.setItem('pending_price_id', priceId);
             sessionStorage.setItem('pending_plan_name', planName);
 
             try {
                 const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-                    body: { priceId, email: session.user.email }
+                    body: { 
+                        priceId, 
+                        email: session.user.email,
+                        userId: session.user.id  // Pass user ID for reference
+                    }
                 });
 
                 if (error) throw error;
