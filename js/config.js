@@ -1,8 +1,7 @@
 const SUPABASE_URL = 'https://kbtvduhjskwiqpcxdquq.supabase.co';
 
-// IMPORTANT: Replace the string below with your actual Anon Key from the "Churnbuddy test site" project
-// Settings > API > Project API keys > anon public
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; 
+// API Key provided by user
+const SUPABASE_ANON_KEY = 'sb_publishable_9Y9xbds48dYNGjsfJewonw_YMlIvB8W'; 
 
 // Ensure global supabase object is available (it comes from the CDN script)
 if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
